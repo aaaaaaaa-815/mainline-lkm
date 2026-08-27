@@ -71,7 +71,7 @@ jobs:
       id: meta
       run: |
         cd workspace
-        git clone https://github.com/tiann/KernelSU.git --depth=1
+        git clone https://github.com/tiann/KernelSU.git
         
         CLANG_VER=$(grep 'CLANG_VERSION' common/bazel/constants.scl | cut -d '"' -f 2)
         CLANG_PATH="$PWD/prebuilts/clang/host/linux-x86/clang-$CLANG_VER/bin"
