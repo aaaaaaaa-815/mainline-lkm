@@ -91,6 +91,22 @@ jobs:
         sed -i '927s/$/\n\/*/' kernel/selinux/sepolicy.c
         sed -i '945s/$/\n*\//' kernel/selinux/sepolicy.c
         cd "$ROOTDIR"
+        KCONFIG_FILE=$(find out/cache -name ".config" | head -n 1)
+        VER=$(grep 'CONFIG_PAHOLE_VERSION' "$KCONFIG_FILE" | cut -d '=' -f 2)
+        TARGET_PAHOLE_VER="v$(printf "%.2f" $(echo "$VER / 100" | bc -l))"
+        PAHOLE_BIN="$PWD/prebuilts/kernel-build-tools/linux_musl-x86/bin/pahole"
+
+        for f in $(find "$PWD" -name "pahole" -type f 2>/dev/null); do
+              if [ -x "$f" ]; then
+                  OUT=$("$f" --version 2>&1)
+    
+                  if [[ "$OUT" == *"$TARGET_VER"* ]]; then
+                      PAHOLE_BIN="$f"
+                      break
+                  fi
+              fi
+        done
+
         make -C "$FULL_KDIR" \
           PATH="$CLANG_PATH:$PATH" \
           ARCH=arm64 \
@@ -105,6 +121,7 @@ jobs:
           OBJCOPY="$CLANG_PATH/llvm-objcopy" \
           OBJDUMP="$CLANG_PATH/llvm-objdump" \
           STRIP="$CLANG_PATH/llvm-strip" \
+          PAHOLE="$PAHOLE_BIN"
           M=$PWD/KernelSU/kernel \
           CONFIG_KSU=m \
           CONFIG_KSU_DEBUG=y \
