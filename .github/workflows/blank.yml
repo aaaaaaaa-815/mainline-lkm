@@ -101,7 +101,7 @@ jobs:
               if [ -x "$f" ]; then
                   OUT=$("$f" --version 2>&1)
     
-                  if [[ "$OUT" == *"$TARGET_VER"* ]]; then
+                  if [[ "$OUT" == *"$TARGET_PAHOLE_VER"* ]]; then
                       PAHOLE_BIN="$f"
                       break
                   fi
