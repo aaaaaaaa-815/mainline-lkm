@@ -1,0 +1,124 @@
+name: Generic Android Kernel CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      PUBLISH_TYPE:
+        description: 'Choose Artifact Publishing Type'
+        required: true
+        type: choice
+        default: 'release'
+        options:
+          - 'release'
+          - 'artifact'
+          - 'both'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Maximize Build Space
+      uses: easimon/maximize-build-space@v10
+      with:
+        root-reserve-mb: 8192
+        swap-size-mb: 4096
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies & Setup Repo
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flex bison build-essential libssl-dev libelf-dev \
+          git-core gnupg ccache zip curl zlib1g-dev python3 python3-pip libbz2-dev
+        
+        mkdir -p ~/.bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+        chmod a+rx ~/.bin/repo
+        echo "$HOME/.bin" >> $GITHUB_PATH
+
+    - name: Sync Source Code & Get Commit SHA
+      id: sync
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+        mkdir workspace
+        cd workspace
+        
+        repo init -u https://android.googlesource.com/kernel/manifest -b common-android-mainline --depth=1
+        repo sync -c --no-tags --no-clone-bundle -j$(nproc)
+        
+        COMMIT_SHA=$(git -C common rev-parse --short=8 HEAD)
+        echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+        rm -rf .repo
+
+    - name: Build Kernel with Kleaf
+      run: |
+        cd workspace
+        tools/bazel build --config=fast //common:kernel_aarch64
+
+    - name: Build LKM
+      id: meta
+      run: |
+        cd workspace
+        git clone https://github.com/tiann/KernelSU.git --depth=1
+        
+        CLANG_VER=$(grep 'CLANG_VERSION' common/bazel/constants.scl | cut -d '"' -f 2)
+        export PATH="$PWD/prebuilts/clang/host/linux-x86/clang-$CLANG_VER/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CC=clang
+        export LD=ld.lld
+        export AR=llvm-ar
+        export NM=llvm-nm
+        export OBJCOPY=llvm-objcopy
+        export OBJDUMP=llvm-objdump
+        export STRIP=llvm-strip
+        
+        ROOTDIR="$PWD"
+        KDIR=$(dirname $(find out/cache -type f -name "localversion" | head -n 1))
+        FULL_KDIR="$ROOTDIR/$KDIR"
+        
+        COMMIT_SHA="${{ steps.sync.outputs.COMMIT_SHA }}"
+        COMMIT_COUNT=$(git -C KernelSU rev-list --count HEAD)
+        VERSION_TAG="v${COMMIT_COUNT}-${COMMIT_SHA}"
+        
+        echo "COMMIT_COUNT=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
+        echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_OUTPUT
+        
+        cd KernelSU
+        sed -i '/ifeq ($(filter \/%,$(src)),)/,/endif/c\KSU_KERNEL_DIR := $(src)' kernel/Kbuild
+        sed -i '927s/$/\n\/*/' kernel/selinux/sepolicy.c
+        sed -i '945s/$/\n*\//' kernel/selinux/sepolicy.c
+        cd "$ROOTDIR"
+        
+        make -C "$FULL_KDIR" M=$PWD/KernelSU/kernel CONFIG_KSU=m CONFIG_KSU_DEBUG=y KBUILD_MODPOST_WARN=1 modules -j$(nproc)
+
+    - name: Upload Actions Artifact (Store Mode)
+      if: ${{ github.event.inputs.PUBLISH_TYPE == 'artifact' || github.event.inputs.PUBLISH_TYPE == 'both' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernelsu-${{ steps.meta.outputs.VERSION_TAG }}.ko
+        path: workspace/KernelSU/kernel/kernelsu.ko
+        compression-level: 0
+
+    - name: Create GitHub Release
+      if: ${{ github.event.inputs.PUBLISH_TYPE == 'release' || github.event.inputs.PUBLISH_TYPE == 'both' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.meta.outputs.VERSION_TAG }}
+        name: KernelSU Module (${{ steps.meta.outputs.VERSION_TAG }})
+        body: |
+          - **Kernel Commit**: `${{ steps.sync.outputs.COMMIT_SHA }}`
+          - **KernelSU Commit Count**: `${{ steps.meta.outputs.COMMIT_COUNT }}`
+        files: workspace/KernelSU/kernel/kernelsu.ko
