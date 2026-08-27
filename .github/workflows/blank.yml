@@ -74,16 +74,6 @@ jobs:
         git clone https://github.com/tiann/KernelSU.git --depth=1
         
         CLANG_VER=$(grep 'CLANG_VERSION' common/bazel/constants.scl | cut -d '"' -f 2)
-        export PATH="$PWD/prebuilts/clang/host/linux-x86/clang-$CLANG_VER/bin:$PATH"
-        export ARCH=arm64
-        export SUBARCH=arm64
-        export CC=clang
-        export LD=ld.lld
-        export AR=llvm-ar
-        export NM=llvm-nm
-        export OBJCOPY=llvm-objcopy
-        export OBJDUMP=llvm-objdump
-        export STRIP=llvm-strip
         
         ROOTDIR="$PWD"
         KDIR=$(dirname $(find out/cache -type f -name "localversion" | head -n 1))
@@ -101,7 +91,16 @@ jobs:
         sed -i '927s/$/\n\/*/' kernel/selinux/sepolicy.c
         sed -i '945s/$/\n*\//' kernel/selinux/sepolicy.c
         cd "$ROOTDIR"
-        
+        export PATH="$PWD/prebuilts/clang/host/linux-x86/clang-$CLANG_VER/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CC=clang
+        export LD=ld.lld
+        export AR=llvm-ar
+        export NM=llvm-nm
+        export OBJCOPY=llvm-objcopy
+        export OBJDUMP=llvm-objdump
+        export STRIP=llvm-strip
         make -C "$FULL_KDIR" M=$PWD/KernelSU/kernel CONFIG_KSU=m CONFIG_KSU_DEBUG=y KBUILD_MODPOST_WARN=1 modules -j$(nproc)
 
     - name: Upload Actions Artifact (Store Mode)
