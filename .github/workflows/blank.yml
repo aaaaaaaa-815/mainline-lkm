@@ -121,7 +121,7 @@ jobs:
           OBJCOPY="$CLANG_PATH/llvm-objcopy" \
           OBJDUMP="$CLANG_PATH/llvm-objdump" \
           STRIP="$CLANG_PATH/llvm-strip" \
-          PAHOLE="$PAHOLE_BIN"
+          PAHOLE="$PAHOLE_BIN" \
           M=$PWD/KernelSU/kernel \
           CONFIG_KSU=m \
           CONFIG_KSU_DEBUG=y \
