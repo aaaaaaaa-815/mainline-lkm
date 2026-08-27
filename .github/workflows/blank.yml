@@ -1,4 +1,4 @@
-name: Generic Android Kernel CI
+name: ACK mainline lkm build
 
 on:
   workflow_dispatch:
