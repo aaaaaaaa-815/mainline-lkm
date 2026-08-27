@@ -94,6 +94,7 @@ jobs:
         KCONFIG_FILE=$(find out/cache -name ".config" | head -n 1)
         VER=$(grep 'CONFIG_PAHOLE_VERSION' "$KCONFIG_FILE" | cut -d '=' -f 2)
         TARGET_PAHOLE_VER="v$(printf "%.2f" $(echo "$VER / 100" | bc -l))"
+        echo $TARGET_PAHOLE_VER
         PAHOLE_BIN="$PWD/prebuilts/kernel-build-tools/linux_musl-x86/bin/pahole"
 
         for f in $(find "$PWD" -name "pahole" -type f 2>/dev/null); do
