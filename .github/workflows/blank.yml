@@ -58,7 +58,7 @@ jobs:
         repo init -u https://android.googlesource.com/kernel/manifest -b common-android-mainline --depth=1
         repo sync -c --no-tags --no-clone-bundle -j$(nproc)
         
-        COMMIT_SHA=$(git -C common rev-parse --short=8 HEAD)
+        COMMIT_SHA=$(git -C common rev-parse --short=7 HEAD)
         echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_OUTPUT
         rm -rf .repo
 
