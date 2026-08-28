@@ -88,8 +88,6 @@ jobs:
         
         cd KernelSU
         sed -i '/ifeq ($(filter \/%,$(src)),)/,/endif/c\KSU_KERNEL_DIR := $(src)' kernel/Kbuild
-        sed -i '927s/$/\n\/*/' kernel/selinux/sepolicy.c
-        sed -i '945s/$/\n*\//' kernel/selinux/sepolicy.c
         cd "$ROOTDIR"
         KCONFIG_FILE=$(find out/cache -name ".config" | head -n 1)
         VER=$(grep 'CONFIG_PAHOLE_VERSION' "$KCONFIG_FILE" | cut -d '=' -f 2)
