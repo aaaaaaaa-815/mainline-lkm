@@ -27,7 +27,6 @@ jobs:
           android: true           # 删除 Android SDK (~14GB)
           dotnet: true            # 删除 .NET 运行时 (~2.7GB)
           haskell: true           # 删除 Haskell (在部分镜像上收益很小)
-          large-packages: true    # 删除大型杂项包 (~5.3GB)
           docker-images: true     # 删除预装的 Docker 镜像
 
     - name: Checkout Code
