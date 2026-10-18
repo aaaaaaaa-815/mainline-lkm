@@ -21,16 +21,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Maximize Build Space
-      uses: easimon/maximize-build-space@v10
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space@v2.0.0   # 建议固定到具体版本，而非 @main
       with:
-        root-reserve-mb: 8192
-        swap-size-mb: 4096
-        remove-dotnet: 'true'
-        remove-android: 'true'
-        remove-haskell: 'true'
-        remove-codeql: 'true'
-        remove-docker-images: 'true'
+          android: true           # 删除 Android SDK (~14GB)
+          dotnet: true            # 删除 .NET 运行时 (~2.7GB)
+          haskell: true           # 删除 Haskell (在部分镜像上收益很小)
+          large-packages: true    # 删除大型杂项包 (~5.3GB)
+          docker-images: true     # 删除预装的 Docker 镜像
 
     - name: Checkout Code
       uses: actions/checkout@v7
